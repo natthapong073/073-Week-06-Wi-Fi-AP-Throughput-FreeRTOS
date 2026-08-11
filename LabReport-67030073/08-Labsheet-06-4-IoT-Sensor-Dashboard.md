@@ -98,9 +98,9 @@ xSemaphoreGive(mutex)           xSemaphoreGive(mutex)
 
 | ครั้งที่ | Temperature (°C) | Humidity (%) | Light Lux | Timestamp (ms) |
 | :------: | :--------------: | :----------: | :-------: | :------------: |
-|  **1**   |                  |              |           |                |
-|  **2**   |                  |              |           |                |
-|  **3**   |                  |              |           |                |
+|  **1**   |      29.00       |    59.10     |    411    |     163560     |
+|  **2**   |      30.80       |    52.10     |    528    |     149970     |
+|  **3**   |      26.40       |    69.10     |    683    |     154500     |
 
 ### 7.2 ทดสอบ JSON API (`/api/data`)
 
@@ -114,9 +114,16 @@ xSemaphoreGive(mutex)           xSemaphoreGive(mutex)
 
 ## 8. คำถามท้ายการทดลอง (Post-Lab Questions)
 
-1. เหตุใดจึงต้องใช้ **Mutex** ในการป้องกันการเข้าถึงตัวแปร `g_latest_data` ร่วมกันระหว่าง `vNetworkTask` และ HTTP Handler? ถ้าไม่ใช้จะเกิดอะไรขึ้น?
-2. `esp_http_server` รัน Handler บน Thread ใด — เป็น Thread เดียวกับ FreeRTOS Task ของเราหรือไม่?
-3. การที่ Dashboard ใช้ `<meta http-equiv="refresh" content="2">` แทนที่จะใช้ JavaScript `fetch()` มีข้อดีและข้อเสียอย่างไร?
+**1. เหตุใดจึงต้องใช้ **Mutex** ในการป้องกันการเข้าถึงตัวแปร `g_latest_data` ร่วมกันระหว่าง `vNetworkTask` และ HTTP Handler? ถ้าไม่ใช้จะเกิดอะไรขึ้น?**
+**ตอบ:** เนื่องจากตัวแปร `g_latest_data` เป็นข้อมูลที่ถูกใช้งานร่วมกัน (Shared Resource) ระหว่าง Task ของระบบ (`vNetworkTask` ทำหน้าที่เขียนข้อมูล) และ Task ของ HTTP Server (`HTTP Handler` ทำหน้าที่อ่านข้อมูล) การใช้ Mutex จะช่วยป้องกันปัญหา **Race Condition** และ **Torn Read** (การอ่านข้อมูลในขณะที่กำลังถูกเขียนทับ ทำให้ได้ข้อมูลที่ไม่สมบูรณ์หรือปะปนกัน) เพื่อให้มั่นใจว่าข้อมูลมีความถูกต้องและปลอดภัย (Thread-Safe) ตลอดเวลา
+
+**2. `esp_http_server` รัน Handler บน Thread ใด — เป็น Thread เดียวกับ FreeRTOS Task ของเราหรือไม่?**
+**ตอบ:** ไม่ใช่ครับ `esp_http_server` จะทำการสร้างและจัดการ FreeRTOS Worker Tasks (Threads) ของตัวเองขึ้นมาเบื้องหลัง เพื่อคอยรับคำขอ (Requests) จาก Client แยกต่างหากจาก Task หลัก (`vSensorTask` และ `vNetworkTask`) ที่เรากำหนดขึ้นเองในระบบ
+
+**3. การที่ Dashboard ใช้ `<meta http-equiv="refresh" content="2">` แทนที่จะใช้ JavaScript `fetch()` มีข้อดีและข้อเสียอย่างไร?**
+**ตอบ:** 
+* **ข้อดี:** เขียนโค้ดง่ายและสั้นมาก ไม่ต้องใช้ JavaScript ช่วย และใช้งานได้ดีกับทุก Web Browser พื้นฐาน
+* **ข้อเสีย:** ทำให้หน้าเว็บต้องรีโหลดใหม่ทั้งหน้า (Full Page Reload) ทุกๆ 2 วินาที ส่งผลให้หน้าจอกระพริบ (Flicker) เปลืองแบนด์วิดท์ และทำให้ผู้ใช้งานสูญเสียสถานะการโต้ตอบบนหน้าเว็บ (เช่น ข้อมูลที่กำลังกรอกหรือตำแหน่งการเลื่อนหน้าจอจะถูกรีเซ็ตใหม่ทั้งหมด)
 
 ---
 

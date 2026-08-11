@@ -9,6 +9,7 @@
 
 static const char *TAG = "LAB_FREERTOS_QUEUE";
 
+// Sensor Data Structure
 typedef struct {
     float temperature;
     float humidity;
@@ -16,13 +17,18 @@ typedef struct {
     uint32_t timestamp_ms;
 } sensor_data_t;
 
+// Queue Handle
 static QueueHandle_t xSensorQueue = NULL;
 
+// ------------------------------------------------------------------
+// Task 1: Sensor Collector Task (Simulates Reading Hardware Sensors)
+// ------------------------------------------------------------------
 void vSensorTask(void *pvParameters) {
     sensor_data_t data;
     ESP_LOGI(TAG, "[TASK CREATED]: Sensor Collector Task Started on Core %d", xPortGetCoreID());
 
     while (1) {
+        // 1. Simulate reading sensors
         data.temperature = 25.0f + (esp_random() % 100) / 10.0f;
         data.humidity = 50.0f + (esp_random() % 200) / 10.0f;
         data.light_lux = 200 + (esp_random() % 500);
@@ -31,10 +37,12 @@ void vSensorTask(void *pvParameters) {
         ESP_LOGI(TAG, "[SENSOR TASK]: Pushing Data -> Temp: %.1f C, Hum: %.1f %%, Lux: %ld",
                  data.temperature, data.humidity, data.light_lux);
 
+        // 2. Send data structure to FreeRTOS Queue
         if (xQueueSend(xSensorQueue, &data, pdMS_TO_TICKS(100)) != pdPASS) {
             ESP_LOGW(TAG, "[QUEUE WARNING]: Queue Full! Failed to push sensor data.");
         }
 
+        // 3. Stack High Water Mark Check
         UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
         ESP_LOGI("FORENSIC_STACK", "  -> SensorTask Stack Remaining: %u words (%u bytes)",
                  hwm, hwm * sizeof(StackType_t));
@@ -43,11 +51,15 @@ void vSensorTask(void *pvParameters) {
     }
 }
 
+// ------------------------------------------------------------------
+// Task 2: Network Task (Consumes Data from Queue for Wi-Fi Transmission)
+// ------------------------------------------------------------------
 void vNetworkTask(void *pvParameters) {
     sensor_data_t rx_data;
     ESP_LOGI(TAG, "[TASK CREATED]: Network Task Started on Core %d", xPortGetCoreID());
 
     while (1) {
+        // Wait indefinitely for data from Queue
         if (xQueueReceive(xSensorQueue, &rx_data, portMAX_DELAY) == pdTRUE) {
             ESP_LOGI(TAG, "=======================================================");
             ESP_LOGI(TAG, "[NETWORK TASK]: Data Received from Queue!");
@@ -70,12 +82,14 @@ void app_main(void) {
     ESP_LOGI(TAG, "  Lab 6.3: FreeRTOS Multi-Tasking & Sensor Data Queue Fusion");
     ESP_LOGI(TAG, "==================================================================");
 
+    // Create FreeRTOS Queue for 10 items of sensor_data_t
     xSensorQueue = xQueueCreate(10, sizeof(sensor_data_t));
     if (xSensorQueue == NULL) {
         ESP_LOGE(TAG, "Failed to create FreeRTOS Queue!");
         return;
     }
 
+    // Create Tasks
     xTaskCreate(vSensorTask, "SensorCollectorTask", 3072, NULL, 5, NULL);
     xTaskCreate(vNetworkTask, "NetworkCommTask", 4096, NULL, 4, NULL);
 }
