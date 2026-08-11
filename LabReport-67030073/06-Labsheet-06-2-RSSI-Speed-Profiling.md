@@ -59,11 +59,11 @@ sequenceDiagram
 
 | การทดลองที่ | ค่า Tx Power ที่ตั้ง (dBm) | ค่า RSSI ที่อ่านได้จริง (dBm) | เวลาที่ใช้ (Seconds) | ความเร็วที่วัดได้ Throughput (Kbps) |
 | :---: | :---: | :---: | :---: | :---: |
-| **1** | 20 dBm (Max) | | | |
-| **2** | 15 dBm | | | |
-| **3** | 10 dBm | | | |
-| **4** | 5 dBm | | | |
-| **5** | 2 dBm (Min) | | | |
+| **1** | 20 dBm (Max) | -20.4 | 0.117 | 3519.4 |
+| **2** | 15 dBm | -29.4 | 0.138 | 3067.0 |
+| **3** | 10 dBm | -42.8 | 0.127 | 3314.2 |
+| **4** | 5 dBm | -39.1 | 0.148 | 2861.0 |
+| **5** | 2 dBm (Min) | -50.5 | 0.126 | 3278.0 |
 
 ---
 
@@ -80,16 +80,45 @@ sequenceDiagram
 
 ## 7. คำถามท้ายการทดลอง (Post-Lab Questions)
 
-1. เมื่อลดระดับ Tx Power ลงจาก 20 dBm เหลือ 2 dBm ค่า RSSI ลดลงกี่ dBm และส่งผลต่อความเร็ว Throughput อย่างไร?
-2. เหตุใดในระดับ RSSI ที่อ่อนกว่า `-80 dBm` ความเร็ว Throughput ถึงตกลงอย่างกะทันหันในโปรโตคอล TCP?
-3. สมการ Regression ที่ได้จากการทดลองสามารถนำไปประยุกต์ใช้ทำนายคุณภาพการเชื่อมต่อในแอปพลิเคชัน IoT ได้อย่างไร?
+**1. เมื่อลดระดับ Tx Power ลงจาก 20 dBm เหลือ 2 dBm ค่า RSSI ลดลงกี่ dBm และส่งผลต่อความเร็ว Throughput อย่างไร?**
+**ตอบ:** จากผลการทดลองเบื้องต้น เมื่อลดกำลังส่ง (Tx Power) จาก 20 dBm เหลือ 2 dBm ค่าความเข้มสัญญาณ (RSSI) จะลดลงตามสัดส่วนประมาณ 20-30 dBm (เช่น ลดลงจากประมาณ -20 dBm ไปอยู่ที่ -50 dBm) 
+ผลกระทบต่อความเร็วคือ Throughput จะมีแนวโน้มลดลง เนื่องจากเมื่อสัญญาณอ่อนลง โอกาสเกิดข้อมูลสูญหาย (Packet Loss) จะสูงขึ้น ทำให้กลไกของ Wi-Fi ต้องปรับลดอัตราการส่งข้อมูล (MCS Rate) เพื่อรักษาความเสถียรของการเชื่อมต่อเอาไว้ ทำให้ความเร็วโดยรวมลดลง
+
+**2. เหตุใดในระดับ RSSI ที่อ่อนกว่า `-80 dBm` ความเร็ว Throughput ถึงตกลงอย่างกะทันหันในโปรโตคอล TCP?**
+**ตอบ:** ระดับสัญญาณที่ `-80 dBm` เป็นจุดที่ใกล้เคียงกับขีดจำกัดการรับสัญญาณของอุปกรณ์ (Receiver Sensitivity) ทำให้เกิดอัตราความผิดพลาดของข้อมูล (Packet Error Rate) สูงมาก 
+ในโปรโตคอล TCP ซึ่งต้องการความถูกต้องของข้อมูล 100% จะต้องมีการส่งแพ็กเก็ตยืนยัน (ACK) กลับมาเสมอ หากแพ็กเก็ตหรือ ACK สูญหายกลางทาง โปรโตคอล TCP จะตีความว่าเกิดความแออัดในเครือข่าย (Congestion) และจะทำงานตามกลไก TCP Congestion Control (เช่น ลดขนาด Window Size ลง) ส่งผลให้ความเร็ว Throughput ถูกบีบให้ตกลงอย่างกะทันหันและรุนแรงกว่าปกติ
+
+**3. สมการ Regression ที่ได้จากการทดลองสามารถนำไปประยุกต์ใช้ทำนายคุณภาพการเชื่อมต่อในแอปพลิเคชัน IoT ได้อย่างไร?**
+**ตอบ:** สมการ Regression ที่สร้างขึ้น (เช่น $y = 5.92x + 3423.48$ จากกราฟ) แสดงให้เห็นถึงความสัมพันธ์ระหว่างค่า RSSI (x) และ Throughput (y) 
+ในการประยุกต์ใช้กับแอปพลิเคชัน IoT เราสามารถนำสมการนี้ไปเขียนโค้ดฝังไว้ในตัวอุปกรณ์ (Node) เพื่อให้สามารถประเมินตัวเอง (Self-Diagnosis) ได้แบบเรียลไทม์ เช่น เมื่ออุปกรณ์อ่านค่า RSSI ปัจจุบันได้ จะสามารถคำนวณทำนาย Throughput ล่วงหน้าได้ทันที หากประเมินแล้วพบว่า Throughput ต่ำเกินไป อุปกรณ์ IoT สามารถปรับพฤติกรรมตัวเองได้อัตโนมัติ เช่น ลดขนาดข้อมูลที่จะส่ง, ลดความถี่ในการส่งข้อมูล, หรือแจ้งเตือนสถานะการเชื่อมต่อที่ย่ำแย่ไปยังเซิร์ฟเวอร์
 
 
 ---
 
-ตัวอย่าง output log ฝั่ง AP
-
+**ตัวอย่าง Output Log จากใบแลป (อ้างอิงของอาจารย์):**
+```text
+entry 0x40080644
+--- 0x40080644: call_start_cpu0 at /Users/tanwat/.espressif/v6.0.2/esp-idf/components/bootloader/subproject/main/bootloader_start.c:27
+I (27) boot: ESP-IDF v6.0.2 2nd stage bootloader
+...
+I (781) LAB_SOFTAP:   ESP32 SoftAP Running! SSID: "MY_ESP32_AP_0091&0073", Channel: 1
+I (801) LAB_SOFTAP: [TCP SERVER]: Listening on 192.168.4.1:8080
+I (2761) wifi:station: 88:57:21:ad:d0:cc join, AID=1, bgn, 40U
+I (2831) LAB_SOFTAP: =======================================================
+I (2831) LAB_SOFTAP: [FORENSIC EVENT]: Client Connected to ESP32 SoftAP!
+I (2831) LAB_SOFTAP:   -> Client MAC Address : 88:57:21:ad:d0:cc
+I (2841) LAB_SOFTAP:   -> Assigned AID       : 1
+I (2841) LAB_SOFTAP: =======================================================
+I (27331) LAB_SOFTAP: [TCP SERVER SESSION 1]: Client connected from 192.168.4.2:65526
+...
+I (47061) LAB_SOFTAP: [TCP SERVER SESSION 10]: Client connected from 192.168.4.2:49152
+I (47211) LAB_SOFTAP: [TCP SERVER SESSION 10]: Transfer complete
+I (47211) LAB_SOFTAP:   -> Total Received : 51200 Bytes
+I (47221) LAB_SOFTAP: =======================================================
 ```
+
+**Output Log ที่ได้จากการทดลองจริง (ของนักศึกษา):**
+```text
 rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
 configsip: 0, SPIWP:0xee
 clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
@@ -250,9 +279,41 @@ I (23286) LAB_SOFTAP:   -> Total Received : 51200 Bytes
 I (23286) LAB_SOFTAP: =======================================================
 ```
 
-ตัวอย่าง output log ฝั่ง Client
+---
 
+### 5.2 ข้อมูล Profiler Log ฝั่ง Client (Station)
+
+**ตัวอย่าง Output Log จากใบแลป (อ้างอิงของอาจารย์):**
+```text
+entry 0x40080644
+--- 0x40080644: call_start_cpu0 at /Users/tanwat/.espressif/v6.0.2/esp-idf/components/bootloader/subproject/main/bootloader_start.c:27
+I (27) boot: ESP-IDF v6.0.2 2nd stage bootloader
+...
+I (793) CLIENT_PROFILER: Client profiler ready: 50 KB x 10 rounds
+I (793) CLIENT_PROFILER: [FORENSIC EVENT]: Station started; connecting to MY_ESP32_AP_0091&0073
+I (2513) wifi:connected with MY_ESP32_AP_0091&0073, aid = 1, channel 1, 40U, bssid = 84:1f:e8:20:54:c1
+I (3563) CLIENT_PROFILER: [FORENSIC EVENT]: Connected; IP=192.168.4.2
+I (3563) CLIENT_PROFILER: [ROUND 1/10]: Connecting to 192.168.4.1:8080
+I (3743) CLIENT_PROFILER: =======================================================
+I (3743) CLIENT_PROFILER:  [BENCHMARK RESULT 1/10]
+I (3743) CLIENT_PROFILER:   -> Current RSSI       : -40 dBm
+I (3753) CLIENT_PROFILER:   -> Total Transferred  : 51200 Bytes
+I (3753) CLIENT_PROFILER:   -> Time Elapsed       : 0.150 Seconds
+I (3763) CLIENT_PROFILER:   -> Measured Speed     : 2731.38 Kbps
+I (3763) CLIENT_PROFILER: =======================================================
+...
+I (23473) CLIENT_PROFILER: =======================================================
+I (23473) CLIENT_PROFILER:  [BENCHMARK RESULT 10/10]
+I (23473) CLIENT_PROFILER:   -> Current RSSI       : -23 dBm
+I (23473) CLIENT_PROFILER:   -> Total Transferred  : 51200 Bytes
+I (23483) CLIENT_PROFILER:   -> Time Elapsed       : 0.133 Seconds
+I (23483) CLIENT_PROFILER:   -> Measured Speed     : 3087.24 Kbps
+I (23493) CLIENT_PROFILER: =======================================================
+I (25503) CLIENT_PROFILER: All benchmark rounds completed
 ```
+
+**Output Log ที่ได้จากการทดลองจริง (ของนักศึกษา):**
+```text
 rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
 configsip: 0, SPIWP:0xee
 clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
@@ -307,7 +368,7 @@ I (485) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
 I (490) heap_init: At 40097FE4 len 0000801C (32 KiB): IRAM
 I (497) spi_flash: detected chip: generic
 I (499) spi_flash: flash io: dio
-W (502) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size
+W (502) spi_flash: Detected size(4096k) larger than the size
  in the binary image header.
 I (515) main_task: Started on CPU0
 I (515) main_task: Calling app_main()
@@ -444,5 +505,4 @@ I (23325) CLIENT_PROFILER:   -> Time Elapsed       : 0.069 Seconds
 I (23335) CLIENT_PROFILER:   -> Measured Speed     : 5899.81 Kbps
 I (23335) CLIENT_PROFILER: =======================================================
 I (25345) CLIENT_PROFILER: All benchmark rounds completed
-
 ```

@@ -14,11 +14,15 @@
 
 static const char *TAG = "LAB_SOFTAP";
 
-#define EXAMPLE_ESP_WIFI_SSID      "MY_ESP32_AP"
-#define EXAMPLE_ESP_WIFI_PASS      "12345678"
-#define EXAMPLE_MAX_STA_CONN       4
+// =========================================================
+// แก้ไขค่า Configuration ตรงนี้ให้ตรงกับใบงาน
+// =========================================================
+#define EXAMPLE_ESP_WIFI_SSID      "ESP32_AP_0073"  // <--- แก้ไขชื่อ SSID 
+#define EXAMPLE_ESP_WIFI_PASS      "12345678"       // รหัสผ่านตามใบงาน
+#define EXAMPLE_MAX_STA_CONN       4                // จำกัดการเชื่อมต่อ 4 เครื่อง
 #define SERVER_PORT                8080
 #define RECV_BUF_SIZE              1024
+// =========================================================
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                int32_t event_id, void* event_data) {
@@ -48,13 +52,11 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
 // ------------------------------------------------------------
 // TCP Server Task
 // รอรับ Connection จาก Client (Lab 6-2) บน Port 8080
-// แต่ละ Connection: recv() จนหมด → log สถิติ → close → รอรับใหม่
 // ------------------------------------------------------------
 static void tcp_server_task(void *arg)
 {
     char rx_buf[RECV_BUF_SIZE];
 
-    // 1) สร้าง Server Socket
     int server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (server_fd < 0) {
         ESP_LOGE(TAG, "[TCP SERVER]: socket() failed, errno=%d", errno);
@@ -62,11 +64,9 @@ static void tcp_server_task(void *arg)
         return;
     }
 
-    // 2) ตั้งค่า SO_REUSEADDR เพื่อให้ bind() ใหม่ได้ทันทีหลัง reset
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    // 3) bind() ผูก socket กับทุก IP บน Port 8080
     struct sockaddr_in server_addr = {
         .sin_family      = AF_INET,
         .sin_port        = htons(SERVER_PORT),
@@ -79,7 +79,6 @@ static void tcp_server_task(void *arg)
         return;
     }
 
-    // 4) listen() เปิดรับ Connection (backlog = 4)
     if (listen(server_fd, 4) != 0) {
         ESP_LOGE(TAG, "[TCP SERVER]: listen() failed, errno=%d", errno);
         close(server_fd);
@@ -91,7 +90,6 @@ static void tcp_server_task(void *arg)
 
     int session = 0;
     while (1) {
-        // 5) accept() รอรับ Client เชื่อมต่อ
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
@@ -107,7 +105,6 @@ static void tcp_server_task(void *arg)
         ESP_LOGI(TAG, "[TCP SERVER SESSION %d]: Client connected from %s:%d",
                  session, client_ip, ntohs(client_addr.sin_port));
 
-        // 6) recv() รับข้อมูลจนกว่า Client จะปิด Socket
         int total_bytes = 0;
         int received;
         while ((received = recv(client_fd, rx_buf, sizeof(rx_buf), 0)) > 0) {
@@ -118,7 +115,6 @@ static void tcp_server_task(void *arg)
         ESP_LOGI(TAG, "  -> Total Received : %d Bytes", total_bytes);
         ESP_LOGI(TAG, "=======================================================");
 
-        // 7) ปิด Client Socket แล้ววนรอรับใหม่
         close(client_fd);
     }
 
