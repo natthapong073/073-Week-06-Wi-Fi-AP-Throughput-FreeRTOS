@@ -65,7 +65,7 @@ sequenceDiagram
 | **4** | 5 dBm | -39.1 | 0.148 | 2861.0 |
 | **5** | 2 dBm (Min) | -50.5 | 0.126 | 3278.0 |
 
----
+--
 
 ## 6. งานวิเคราะห์ข้อมูลเชิงสถิติ (Data Science & Regression Task)
 
