@@ -90,7 +90,7 @@ xSemaphoreGive(mutex)           xSemaphoreGive(mutex)
 ![](images/253776.jpg)
 
 
----
+--
 
 ## 7. ตารางบันทึกผลการทดลอง (Experiment Results)
 
